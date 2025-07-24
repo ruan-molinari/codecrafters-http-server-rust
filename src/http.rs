@@ -1,3 +1,5 @@
+const HTTP_VERSION: &str = "HTTP/1.1";
+
 pub enum HttpMethod {
     GET,
     POST,
@@ -110,7 +112,7 @@ impl HttpResponse {
     }
 
     pub fn to_string(&self) -> String {
-        let mut response = format!("{} {}\r\n", "HTTP/1.1", self.status.as_str());
+        let mut response = format!("{} {}\r\n", HTTP_VERSION, self.status.as_str());
         for header in &self.headers {
             response.push_str(&format!("{}: {}\r\n", header.key, header.value));
         }
