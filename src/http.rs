@@ -97,16 +97,6 @@ pub struct HttpResponse {
 
 impl HttpResponse {
     pub fn new(status: HttpStatus, mut headers: HeaderMap, body: Option<String>) -> Self {
-        if !headers.contains_key("content-type") {
-            headers.insert(
-                "content-type".to_string(),
-                Header {
-                    key: "Content-Type".to_string(),
-                    value: "text/plain".to_string(),
-                },
-            );
-        }
-
         if let Some(b) = &body {
             headers.insert(
                 "content-length".to_string(),

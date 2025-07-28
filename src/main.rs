@@ -4,7 +4,7 @@ use std::error::Error;
 use std::io::{Read, Write};
 use std::net::TcpListener;
 
-use crate::http::{HeaderMap, HttpRequest, HttpResponse, HttpStatus};
+use crate::http::{Header, HeaderMap, HttpRequest, HttpResponse, HttpStatus};
 
 fn main() {
     let listener = TcpListener::bind("127.0.0.1:4221").unwrap();
@@ -66,7 +66,12 @@ fn handle_echo(ctx: &HttpRequest) -> HttpResponse {
 
 fn handle_user_agent(ctx: &HttpRequest) -> HttpResponse {
     if let Some(s) = ctx.headers.get("user-agent") {
-        HttpResponse::new(HttpStatus::OK, HeaderMap::new(), Some(s.value.clone()))
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            "content-length".to_string(),
+            Header::new("Content-Length".to_string(), "plain/text".to_string()),
+        );
+        HttpResponse::new(HttpStatus::OK, headers, Some(s.value.clone()))
     } else {
         HttpResponse::new(HttpStatus::BadRequest, HeaderMap::new(), None)
     }
