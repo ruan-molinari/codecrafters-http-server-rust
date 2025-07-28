@@ -4,7 +4,7 @@ use std::error::Error;
 use std::io::{Read, Write};
 use std::net::TcpListener;
 
-use crate::http::{Header, HeaderMap, HttpRequest, HttpResponse, HttpStatus};
+use crate::http::{HeaderMap, HttpRequest, HttpResponse, HttpStatus};
 
 fn main() {
     let listener = TcpListener::bind("127.0.0.1:4221").unwrap();
@@ -34,6 +34,9 @@ fn handle_connection_error(error: impl Error) {
     println!("error: {}", error);
 }
 
+// TODO: Create a proper Router for handling routes
+// IDEAS:
+//  -
 fn handle_routes(ctx: &HttpRequest) -> HttpResponse {
     let route = ctx
         .target
