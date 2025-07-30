@@ -3,6 +3,7 @@ mod http;
 use std::error::Error;
 use std::io::{Read, Write};
 use std::net::TcpListener;
+use std::thread;
 
 use crate::http::{Header, HeaderMap, HttpRequest, HttpResponse, HttpStatus};
 
@@ -10,14 +11,16 @@ fn main() {
     let listener = TcpListener::bind("127.0.0.1:4221").unwrap();
 
     for stream in listener.incoming() {
-        match stream {
-            Ok(s) => handle_connection_success(s),
+        thread::spawn(|| match stream {
+            Ok(s) => handle_connection_success(&s),
             Err(e) => handle_connection_error(e),
-        }
+        });
     }
 }
 
-fn handle_connection_success(mut stream: std::net::TcpStream) {
+fn handle_connection_success(mut stream: &std::net::TcpStream) {
+    println!("accepted new connection");
+
     let mut buf = [0; 1024];
 
     let _ = stream.read(&mut buf).expect("failed to read to string");
@@ -26,7 +29,6 @@ fn handle_connection_success(mut stream: std::net::TcpStream) {
 
     let response = handle_routes(&request);
 
-    println!("accepted new connection");
     let _ = stream.write(&response.as_bytes());
 }
 
