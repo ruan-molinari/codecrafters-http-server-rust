@@ -1,0 +1,9 @@
+[package]
+name = "gus"
+version = "0.1.0"
+authors = ["Ruan G. Molinari <github.com/ruan-molinari>"]
+edition = "2021"
+rust-version = "1.80"
+
+[dependencies.gus-http]
+path = "../http"

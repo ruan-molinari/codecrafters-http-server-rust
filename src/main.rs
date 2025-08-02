@@ -1,10 +1,13 @@
-mod http;
+extern crate gus;
+extern crate gus_http;
 
 use std::error::Error;
 use std::io::{Read, Write};
 use std::net::TcpListener;
 
-use crate::http::{Header, HeaderMap, HttpRequest, HttpResponse, HttpStatus};
+use gus::request::Request;
+use gus::response::Response;
+use gus_http::{Header, HeaderMap, Status};
 
 fn main() {
     let listener = TcpListener::bind("127.0.0.1:4221").unwrap();
@@ -22,9 +25,11 @@ fn handle_connection_success(mut stream: std::net::TcpStream) {
 
     let _ = stream.read(&mut buf).expect("failed to read to string");
 
-    let request = HttpRequest::new(buf.to_vec());
+    let request = Request::new(buf.to_vec());
 
     let response = handle_routes(&request);
+
+    println!("{}", response.to_string());
 
     println!("accepted new connection");
     let _ = stream.write(&response.as_bytes());
@@ -37,7 +42,7 @@ fn handle_connection_error(error: impl Error) {
 // TODO: Create a proper Router for handling routes
 // IDEAS:
 //  -
-fn handle_routes(ctx: &HttpRequest) -> HttpResponse {
+fn handle_routes(ctx: &Request) -> Response {
     let route = ctx
         .target
         .split('/')
@@ -47,32 +52,32 @@ fn handle_routes(ctx: &HttpRequest) -> HttpResponse {
         .to_string();
 
     match format!("/{}", route).as_str() {
-        "/" => HttpResponse::new(HttpStatus::OK, HeaderMap::new(), None),
+        "/" => Response::new(Status::OK, HeaderMap::new(), None),
         "/echo" => handle_echo(&ctx),
         "/user-agent" => handle_user_agent(&ctx),
-        _ => HttpResponse::new(HttpStatus::NotFound, HeaderMap::new(), None),
+        _ => Response::new(Status::NotFound, HeaderMap::new(), None),
     }
 }
 
-fn handle_echo(ctx: &HttpRequest) -> HttpResponse {
+fn handle_echo(ctx: &Request) -> Response {
     let route = ctx.target.split('/').collect::<Vec<_>>();
     let echo = route
         .get(2)
         .map(|s| s.to_string())
         .unwrap_or("".to_string());
 
-    HttpResponse::new(HttpStatus::OK, HeaderMap::new(), Some(echo))
+    Response::new(Status::OK, HeaderMap::new(), Some(echo))
 }
 
-fn handle_user_agent(ctx: &HttpRequest) -> HttpResponse {
+fn handle_user_agent(ctx: &Request) -> Response {
     if let Some(s) = ctx.headers.get("user-agent") {
         let mut headers = HeaderMap::new();
         headers.insert(
             "content-length".to_string(),
             Header::new("Content-Length".to_string(), "plain/text".to_string()),
         );
-        HttpResponse::new(HttpStatus::OK, headers, Some(s.value.clone()))
+        Response::new(Status::OK, headers, Some(s.value.clone()))
     } else {
-        HttpResponse::new(HttpStatus::BadRequest, HeaderMap::new(), None)
+        Response::new(Status::BadRequest, HeaderMap::new(), None)
     }
 }

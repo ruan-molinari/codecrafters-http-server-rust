@@ -1,7 +1,7 @@
 [package]
-name = "codecrafters-http-server"
+name = "gus-http-server"
 version = "0.1.0"
-authors = ["Codecrafters <hello@codecrafters.io>"]
+authors = ["Ruan G. Molinari <github.com/ruan-molinari>"]
 edition = "2021"
 rust-version = "1.80"
 
@@ -9,3 +9,9 @@ rust-version = "1.80"
 anyhow = "1.0.68"    # error handling
 bytes = "1.3.0"      # helps manage buffers
 thiserror = "1.0.38" # error handling
+
+[dependencies.gus]
+path = "lib"
+
+[dependencies.gus-http]
+path = "http"
