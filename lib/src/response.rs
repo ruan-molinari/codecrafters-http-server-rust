@@ -1,41 +1,49 @@
-use crate::http::{Header, HeaderMap, Status, HTTP_VERSION};
+use std::ops::Deref;
 
-pub struct Response {
+use crate::http::{HeaderMap, Status, HTTP_VERSION};
+
+pub struct Response<'r> {
     pub status: Status,
-    pub headers: HeaderMap,
-    pub body: Option<String>,
+    pub headers: HeaderMap<'r>,
+    pub body: Option<&'r str>,
 }
 
-impl Response {
-    pub fn new(status: Status, mut headers: HeaderMap, body: Option<String>) -> Self {
-        if let Some(b) = &body {
-            headers.insert(
-                "content-length".to_string(),
-                Header {
-                    key: "Content-Length".to_string(),
-                    value: b.len().to_string(),
-                },
-            );
-        }
+impl<'r> Response<'r> {
+    pub fn new() -> Self {
         Response {
-            status,
-            headers,
-            body,
+            status: Status::OK,
+            headers: HeaderMap::new(),
+            body: None,
         }
     }
 
-    pub fn to_string(&self) -> String {
-        let mut response = format!("{} {}\r\n", HTTP_VERSION, self.status.as_str());
+    pub fn set_body(&mut self, body: &'r str) {
+        self.headers
+            .insert("Content-Length", body.len().to_string());
+        self.body = Some(body);
+    }
 
-        self.headers.iter().for_each(|(_, header)| {
-            response.push_str(&header.as_str());
-            response.push_str("\r\n");
-        });
-        response.push_str("\r\n");
-        if let Some(body) = &self.body {
-            response.push_str(body);
-        }
-        response
+    // pub fn new(status: Status, headers: Option<&mut HeaderMap<'r>>, body: Option<&'r str>) -> Self {
+    //     let mut headers = headers.unwrap_or(&mut HeaderMap::new());
+    //     if let Some(b) = &body {
+    //         let header = Header::new("Content-Length", b.len().to_string());
+    //         headers.insert(header.name, header.value);
+    //     }
+    //     Response {
+    //         status,
+    //         headers: *headers.deref(),
+    //         body,
+    //     }
+    // }
+
+    pub fn to_string(&self) -> String {
+        // let mut response = format!("{} {}\r\n", HTTP_VERSION, self.status.as_str());
+
+        let status = self.status.as_str();
+        let headers = self.headers.to_string();
+        let body = self.body.unwrap_or("");
+
+        format!("{HTTP_VERSION} {status}\r\n{headers}\r\n\r\n{body}")
     }
 
     pub fn as_bytes(&self) -> Vec<u8> {

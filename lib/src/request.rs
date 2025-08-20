@@ -1,35 +1,38 @@
+use std::borrow::Cow;
+
 use crate::http::{Header, HeaderMap, Method};
 
-pub struct Request {
+pub struct Request<'r> {
     pub method: Method,
-    pub target: String,
-    pub version: String,
-    pub headers: HeaderMap,
-    pub body: Option<String>,
+    pub target: &'r str,
+    pub version: &'r str,
+    pub headers: HeaderMap<'r>,
+    pub body: Option<&'r str>,
 }
 
-impl Request {
-    pub fn new(buf: Vec<u8>) -> Self {
-        let request = String::from_utf8(buf).unwrap();
-        let mut lines = request.lines().collect::<Vec<_>>().into_iter();
+impl<'h> Request<'h> {
+    pub fn from_buf(buf: &'h str) -> Self {
+        let raw = Cow::Borrowed(&buf);
+        let mut lines = raw.lines();
         let mut status_line = lines.next().unwrap().split_whitespace();
 
         let mut headers = HeaderMap::new();
         while let Some(header_line) = lines.next() {
-            if let Some(header) = Header::from_str(header_line) {
-                headers.insert(header.key.clone().to_lowercase(), header);
+            if let Some((name, value)) = header_line.split_once(":") {
+                headers.insert(name.trim(), value.trim());
             }
         }
-        let body = String::from(lines.collect::<Vec<&str>>().concat());
+
+        let body = raw.get(raw.find("\r\n\r\n").unwrap()..);
 
         let method = Method::from_str(status_line.next().unwrap()).expect("Invalid HTTP method");
 
         Request {
-            method: method,
-            target: status_line.next().unwrap().to_string(),
-            version: status_line.next().unwrap().to_string(),
-            headers: headers,
-            body: Some(body),
+            method,
+            target: status_line.next().unwrap(),
+            version: status_line.next().unwrap(),
+            headers,
+            body,
         }
     }
 }

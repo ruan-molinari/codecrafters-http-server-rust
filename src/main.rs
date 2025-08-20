@@ -28,7 +28,7 @@ fn handle_connection_success(mut stream: &std::net::TcpStream) {
 
     let _ = stream.read(&mut buf).expect("failed to read to string");
 
-    let request = Request::new(buf.to_vec());
+    let request = Request::from_buf(str::from_utf8(&buf).unwrap());
 
     let response = handle_routes(&request);
 
@@ -42,7 +42,7 @@ fn handle_connection_error(error: impl Error) {
 // TODO: Create a proper Router for handling routes
 // IDEAS:
 //  -
-fn handle_routes(ctx: &Request) -> Response {
+fn handle_routes<'r>(ctx: &'r Request) -> Response<'r> {
     let route = ctx
         .target
         .split('/')
@@ -52,32 +52,46 @@ fn handle_routes(ctx: &Request) -> Response {
         .to_string();
 
     match format!("/{}", route).as_str() {
-        "/" => Response::new(Status::OK, HeaderMap::new(), None),
+        "/" => {
+            let mut res = Response::new();
+            res.status = Status::OK;
+            res
+        }
         "/echo" => handle_echo(&ctx),
         "/user-agent" => handle_user_agent(&ctx),
-        _ => Response::new(Status::NotFound, HeaderMap::new(), None),
+        _ => {
+            let mut res = Response::new();
+            res.status = Status::NotFound;
+            res
+        }
     }
 }
 
-fn handle_echo(ctx: &Request) -> Response {
+fn handle_echo<'r>(ctx: &Request<'r>) -> Response<'r> {
     let route = ctx.target.split('/').collect::<Vec<_>>();
-    let echo = route
-        .get(2)
-        .map(|s| s.to_string())
-        .unwrap_or("".to_string());
+    let echo = route.get(2).map(|&s| s).unwrap_or("");
 
-    Response::new(Status::OK, HeaderMap::new(), Some(echo))
+    Response {
+        status: Status::OK,
+        headers: HeaderMap::new(),
+        body: Some(echo),
+    }
 }
 
-fn handle_user_agent(ctx: &Request) -> Response {
-    if let Some(s) = ctx.headers.get("user-agent") {
+fn handle_user_agent<'r>(ctx: &'r Request) -> Response<'r> {
+    if let Some(user_agent) = ctx.headers.get("User-Agent") {
         let mut headers = HeaderMap::new();
-        headers.insert(
-            "content-length".to_string(),
-            Header::new("Content-Length".to_string(), "plain/text".to_string()),
-        );
-        Response::new(Status::OK, headers, Some(s.value.clone()))
+        headers.insert("Content-Type", "plain/text");
+        Response {
+            status: Status::OK,
+            headers,
+            body: Some(&user_agent),
+        }
     } else {
-        Response::new(Status::BadRequest, HeaderMap::new(), None)
+        Response {
+            status: Status::BadRequest,
+            headers: HeaderMap::new(),
+            body: None,
+        }
     }
 }
